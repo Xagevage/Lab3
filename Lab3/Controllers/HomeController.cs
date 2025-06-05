@@ -1,31 +1,43 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using Lab3.Models;
+using Microsoft.Extensions.Logging;
 
-namespace Lab3.Controllers;
-
-public class HomeController : Controller
+namespace Lab3.Controllers
 {
-    private readonly ILogger<HomeController> _logger;
-
-    public HomeController(ILogger<HomeController> logger)
+    [ApiController]
+    [Route("api/[controller]")]
+    public class HomeController : ControllerBase
     {
-        _logger = logger;
-    }
+        private readonly ILogger<HomeController> _logger;
 
-    public IActionResult Index()
-    {
-        return View();
-    }
+        public HomeController(ILogger<HomeController> logger)
+        {
+            _logger = logger;
+        }
 
-    public IActionResult Privacy()
-    {
-        return View();
-    }
+        // GET: api/Home
+        [HttpGet]
+        public IActionResult GetHome()
+        {
+            return Ok(new { message = "Welcome to the API Home endpoint!" });
+        }
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        // GET: api/Home/privacy
+        [HttpGet("privacy")]
+        public IActionResult GetPrivacy()
+        {
+            return Ok(new { message = "This is the privacy policy of the API." });
+        }
+
+        // GET: api/Home/error
+        [HttpGet("error")]
+        public IActionResult GetError()
+        {
+            var requestId = HttpContext.TraceIdentifier;
+            return StatusCode(500, new
+            {
+                error = "An unexpected error occurred.",
+                requestId = requestId
+            });
+        }
     }
 }

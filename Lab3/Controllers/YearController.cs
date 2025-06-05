@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Lab3;
 using Lab3.Models;
 
 namespace Lab3.Controllers
 {
-    public class YearController : Controller
+    [ApiController]
+    [Route("api/[controller]")]
+    public class YearController : ControllerBase
     {
         private readonly ApplicationContext _context;
 
@@ -19,130 +16,81 @@ namespace Lab3.Controllers
             _context = context;
         }
 
-        // GET: Year
-        public async Task<IActionResult> Index()
+        // GET: api/Year
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Year>>> GetYears()
         {
-            return View(await _context.Year.ToListAsync());
+            return await _context.Year.ToListAsync();
         }
 
-        // GET: Year/Details/5
-        public async Task<IActionResult> Details(int? id)
+        // GET: api/Year/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Year>> GetYear(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var year = await _context.Year
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (year == null)
-            {
-                return NotFound();
-            }
-
-            return View(year);
-        }
-
-        // GET: Year/Create
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: Year/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,YearValue")] Year year)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(year);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(year);
-        }
-
-        // GET: Year/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var year = await _context.Year.FindAsync(id);
+
             if (year == null)
             {
                 return NotFound();
             }
-            return View(year);
+
+            return year;
         }
 
-        // POST: Year/Edit/5
+        // POST: api/Year
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,YearValue")] Year year)
+        public async Task<ActionResult<Year>> CreateYear(Year year)
+        {
+            _context.Year.Add(year);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetYear), new { id = year.Id }, year);
+        }
+
+        // PUT: api/Year/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateYear(int id, Year year)
         {
             if (id != year.Id)
             {
-                return NotFound();
+                return BadRequest();
             }
 
-            if (ModelState.IsValid)
+            _context.Entry(year).State = EntityState.Modified;
+
+            try
             {
-                try
-                {
-                    _context.Update(year);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!YearExists(year.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                await _context.SaveChangesAsync();
             }
-            return View(year);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!YearExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
         }
 
-        // GET: Year/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // DELETE: api/Year/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteYear(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var year = await _context.Year
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var year = await _context.Year.FindAsync(id);
             if (year == null)
             {
                 return NotFound();
             }
 
-            return View(year);
-        }
-
-        // POST: Year/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var year = await _context.Year.FindAsync(id);
-            if (year != null)
-            {
-                _context.Year.Remove(year);
-            }
-
+            _context.Year.Remove(year);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+
+            return NoContent();
         }
 
         private bool YearExists(int id)

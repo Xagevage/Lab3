@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using Lab3;
 using Lab3.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Lab3.Controllers
 {
-    public class BookController : Controller
+    [ApiController]
+    [Route("api/[controller]")]
+    public class BookController : ControllerBase
     {
         private readonly ApplicationContext _context;
 
@@ -19,148 +18,80 @@ namespace Lab3.Controllers
             _context = context;
         }
 
-        // GET: Book
-        public async Task<IActionResult> Index()
+        // GET: api/Book
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
         {
-            var applicationContext = _context.Book.Include(b => b.Author).Include(b => b.Year);
-            return View(await applicationContext.ToListAsync());
+            return await _context.Book
+                .Include(b => b.Author)
+                .Include(b => b.Year)
+                .ToListAsync();
         }
 
-        // GET: Book/Details/5
-        public async Task<IActionResult> Details(int? id)
+        // GET: api/Book/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Book>> GetBook(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var book = await _context.Book
                 .Include(b => b.Author)
                 .Include(b => b.Year)
-                .FirstOrDefaultAsync(m => m.Id == id);
+                .FirstOrDefaultAsync(b => b.Id == id);
+
             if (book == null)
-            {
-                return NotFound();
-            }
+                return NotFound(new { message = "Book not found" });
 
-            return View(book);
+            return book;
         }
 
-        // GET: Book/Create
-        public IActionResult Create()
-        {
-            ViewData["AuthorId"] = new SelectList(_context.Author, "Id", "Name");
-            ViewData["YearId"] = new SelectList(_context.Year, "Id", "YearValue");
-            return View();
-        }
-
-        // POST: Book/Create
+        // POST: api/Book
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Title,AuthorId,YearId")] Book book)
+        public async Task<ActionResult<Book>> CreateBook([FromBody] Book book)
         {
-            if (ModelState.IsValid)
-            {
-                _context.Add(book);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["AuthorId"] = new SelectList(_context.Author, "Id", "Name", book.AuthorId);
-            ViewData["YearId"] = new SelectList(_context.Year, "Id", "YearValue", book.YearId);
-            return View(book);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            _context.Book.Add(book);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetBook), new { id = book.Id }, book);
         }
 
-        // GET: Book/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var book = await _context.Book.FindAsync(id);
-            if (book == null)
-            {
-                return NotFound();
-            }
-            ViewData["AuthorId"] = new SelectList(_context.Author, "Id", "Name", book.AuthorId);
-            ViewData["YearId"] = new SelectList(_context.Year, "Id", "YearValue", book.YearId);
-            return View(book);
-        }
-
-        // POST: Book/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,AuthorId,YearId")] Book book)
+        // PUT: api/Book/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateBook(int id, [FromBody] Book book)
         {
             if (id != book.Id)
+                return BadRequest(new { message = "ID mismatch" });
+
+            _context.Entry(book).State = EntityState.Modified;
+
+            try
             {
-                return NotFound();
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Book.Any(b => b.Id == id))
+                    return NotFound(new { message = "Book not found" });
+                else
+                    throw;
             }
 
-            if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(book);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!BookExists(book.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["AuthorId"] = new SelectList(_context.Author, "Id", "Name", book.AuthorId);
-            ViewData["YearId"] = new SelectList(_context.Year, "Id", "YearValue", book.YearId);
-            return View(book);
+            return NoContent();
         }
 
-        // GET: Book/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var book = await _context.Book
-                .Include(b => b.Author)
-                .Include(b => b.Year)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (book == null)
-            {
-                return NotFound();
-            }
-
-            return View(book);
-        }
-
-        // POST: Book/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        // DELETE: api/Book/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteBook(int id)
         {
             var book = await _context.Book.FindAsync(id);
-            if (book != null)
-            {
-                _context.Book.Remove(book);
-            }
+            if (book == null)
+                return NotFound(new { message = "Book not found" });
 
+            _context.Book.Remove(book);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
 
-        private bool BookExists(int id)
-        {
-            return _context.Book.Any(e => e.Id == id);
+            return NoContent();
         }
     }
 }

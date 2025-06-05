@@ -12,12 +12,7 @@ namespace Lab3
 
         public ApplicationContext(DbContextOptions<ApplicationContext> options) : base(options)
         {
-            Database.EnsureCreated();
-        }
-
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlite("Data Source=books.db"); 
+            Database.EnsureCreated(); 
         }
     }
 }

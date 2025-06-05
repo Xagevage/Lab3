@@ -3,30 +3,30 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Регистрируем сервисы MVC с поддержкой представлений
 builder.Services.AddControllersWithViews();
 
-// Обновленная конфигурация DbContext
+// Регистрируем DbContext с подключением к SQLite
 builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseSqlite("Data Source=books.db"));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Конфигурация конвейера обработки запросов
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseHsts(); // HTTPS Strict Transport Security для безопасности
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseHttpsRedirection();  // Перенаправление с HTTP на HTTPS
+app.UseStaticFiles();       // Поддержка статических файлов (css, js и т.д.)
 
-app.UseRouting();
+app.UseRouting();           // Маршрутизация
 
-app.UseAuthorization();
+app.UseAuthorization();    // Авторизация (если требуется)
 
+// Настраиваем маршрут по умолчанию: HomeController -> Index action
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

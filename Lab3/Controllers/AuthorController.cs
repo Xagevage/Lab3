@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using Lab3;
 using Lab3.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Lab3.Controllers
 {
-    public class AuthorController : Controller
+    [ApiController]
+    [Route("api/[controller]")]
+    public class AuthorController : ControllerBase
     {
         private readonly ApplicationContext _context;
 
@@ -19,135 +18,84 @@ namespace Lab3.Controllers
             _context = context;
         }
 
-        // GET: Author
-        public async Task<IActionResult> Index()
+        // GET: api/Author
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
         {
-            return View(await _context.Author.ToListAsync());
+            return await _context.Author.ToListAsync();
         }
 
-        // GET: Author/Details/5
-        public async Task<IActionResult> Details(int? id)
+        // GET: api/Author/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Author>> GetAuthor(int id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var author = await _context.Author
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (author == null)
-            {
-                return NotFound();
-            }
-
-            return View(author);
-        }
-
-        // GET: Author/Create
-        public IActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: Author/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name")] Author author)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(author);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            return View(author);
-        }
-
-        // GET: Author/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
             var author = await _context.Author.FindAsync(id);
+
             if (author == null)
             {
-                return NotFound();
+                return NotFound(new { message = "Author not found" });
             }
-            return View(author);
+
+            return author;
         }
 
-        // POST: Author/Edit/5
+        // POST: api/Author
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name")] Author author)
+        public async Task<ActionResult<Author>> CreateAuthor([FromBody] Author author)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            _context.Author.Add(author);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, author);
+        }
+
+        // PUT: api/Author/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateAuthor(int id, [FromBody] Author author)
         {
             if (id != author.Id)
             {
-                return NotFound();
+                return BadRequest(new { message = "ID in URL does not match ID in body" });
             }
 
-            if (ModelState.IsValid)
+            _context.Entry(author).State = EntityState.Modified;
+
+            try
             {
-                try
-                {
-                    _context.Update(author);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!AuthorExists(author.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
+                await _context.SaveChangesAsync();
             }
-            return View(author);
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_context.Author.Any(e => e.Id == id))
+                {
+                    return NotFound(new { message = "Author not found" });
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
         }
 
-        // GET: Author/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var author = await _context.Author
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (author == null)
-            {
-                return NotFound();
-            }
-
-            return View(author);
-        }
-
-        // POST: Author/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        // DELETE: api/Author/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAuthor(int id)
         {
             var author = await _context.Author.FindAsync(id);
-            if (author != null)
+            if (author == null)
             {
-                _context.Author.Remove(author);
+                return NotFound(new { message = "Author not found" });
             }
 
+            _context.Author.Remove(author);
             await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
 
-        private bool AuthorExists(int id)
-        {
-            return _context.Author.Any(e => e.Id == id);
+            return NoContent();
         }
     }
 }
